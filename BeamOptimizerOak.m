@@ -27,10 +27,10 @@ b = 8; %in
 
 bestStr2Weight = 0;
 bestConfig = [0,0,0,0];
-for flange_width = 3/16:1/16:2
-    for flange_height = 3/16:1/16:3/4
-        for web_width = 3/16:1/16:flange_width
-            for web_height= 2*flange_width-2*flange_height: 1/16:4-2*flange_height
+for flange_width = 3/16:1/16:2 %29 times
+    for flange_height = 3/16:1/16:3/4 %9 times
+        for web_width = 3/16:1/16:min(flange_width,3/4) %9 times or less
+            for web_height= 3/16:1/16:2*flange_width-2*flange_height %58 times or less
 
                 flange_n = E_Oak/E_Oak; %E chosen/ E material
                 web_n = E_Oak/E_Oak; %E chosen/ E material

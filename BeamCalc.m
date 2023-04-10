@@ -25,8 +25,6 @@ dens_Pine = .014; %lb/in^3
 a = 12; %in
 b = 8; %in
 
-F = 2000; %lb
-
 flange_width = 2; %in
 flange_height = 3/4; %in
 web_width = 3/4; %in
@@ -39,7 +37,7 @@ web_n = E_Oak/E_Oak; %E chosen/ E material
 I = 1/12*(flange_width*flange_n*(2*flange_height+web_height)^3-(flange_width-web_width)*web_n*web_height^3);
 
 
-syms x;
+syms x; syms F;
 %using lower E value, E pine
 deflectLeft = -F*b*x/(6*E_Pine*I*L)*(L^2-b^2-x^2);
 deflectRight = -F*a*(L-x)/(6*E_Pine*I*L)*(L^2-a^2-(L-x)^2);
@@ -67,18 +65,15 @@ x = maxM_x;
 maxM_right = subs(MRight);
 
 maxMArr = [maxM_left;maxM_right];
-[~,X] = max(abs(maxMArr));
-M_max =  vpa(maxMArr(X));
+M_max =  maxMArr(1);
 
-if abs(VLeft)>abs(VRight)
-    V_max = vpa(VLeft);
+if abs(diff(VLeft))>abs(diff(VRight))
+    V_max = VLeft;
 else
-    V_max = vpa(VRight);
+    V_max = VRight;
 end
 
-maxDeflect_x = solve(slopeLeft);
-x = max(maxDeflect_x);
-maxDeflect = vpa(subs(deflectLeft));
+
 
 %Now do max stress calculations for tensile, shear, and glue shear
 
@@ -97,9 +92,16 @@ shearStress_glue = V_max*Q_joint/(web_n*I*web_width); %connection between flange
 %not sure if I should multiple last equation by web_n or not
 
 %calculate safety factors
-SF_bendStress = Oak_Tens_Avg/abs(bendStress_flange);
-SF_shearStress = min(Oak_Shear_Avg/abs(shearStress_max) + Oak_Shear_Avg/abs(shearStress_flange));
+%need to take derivatives and compare
+SF_bendStress = min(abs(Oak_Tens_Avg*F/bendStress_flange),abs(Oak_Tens_Avg*F/bendStress_web))/F;
+SF_shearStress = min(abs(Oak_Shear_Avg*F/shearStress_max),abs(Oak_Shear_Avg*F/shearStress_flange))/F;
 SF_shearStressGlue = OakGlue_Shear_Avg/abs(shearStress_glue);
+
+F_max_bendStress = vpa(solve(SF_bendStress==1,F));
+F_max_shearStress = vpa(solve(SF_shearStress==1,F));
+F_max_shearStressGlue = vpa(solve(SF_shearStressGlue==1,F));
+
+F_max = min([F_max_bendStress,F_max_shearStress,F_max_shearStressGlue]);
 
 flangeVolume = L_tot*flange_width*flange_height;
 FlangeWeight = flangeVolume*dens_Oak;
@@ -109,5 +111,4 @@ webWeight = webVolume*dens_Oak;
 
 weight = 2*FlangeWeight + webWeight;
 
-%This is not accurate because this F is not the F that the beam breaks
-str2Weight = F/weight;
+str2Weight = F_max/weight;

@@ -95,8 +95,8 @@ for flange_width = 3/16:1/16:2 %29 times
                 
                 %calculate safety factors
                 %need to take derivatives and compare
-                SF_bendStress = min(Oak_Tens_Avg/abs(bendStress_flange),Pine_Tens_Avg/abs(bendStress_web));
-                SF_shearStress = min(Pine_Shear_Avg/abs(shearStress_max),Oak_Shear_Avg/abs(shearStress_flange));
+                SF_bendStress = min(abs(Oak_Tens_Avg*F/bendStress_flange),abs(Pine_Tens_Avg*F/bendStress_web))/F;
+                SF_shearStress = min(abs(Pine_Shear_Avg*F/shearStress_max),abs(Oak_Shear_Avg*F/shearStress_flange))/F;
                 SF_shearStressGlue = PineGlue_Shear_Avg/abs(shearStress_glue);
 
                 F_max_bendStress = vpa(solve(SF_bendStress==1,F));

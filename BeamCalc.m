@@ -1,4 +1,4 @@
-
+clear;
 L_tot = 22; %in, total length
 L = 20; %in, length between supports
 
@@ -25,17 +25,20 @@ dens_Pine = .014; %lb/in^3
 a = 12; %in
 b = 8; %in
 
-flange_width = 2; %in
-flange_height = 3/4; %in
-web_width = 3/4; %in
-web_height = 4-2*flange_height; %in
+flange_width = 1.1875; %in
+flange_height = .1875; %in
+web_width = .4375; %in
+web_height = 1.875; %in
 
-flange_n = E_Oak/E_Oak; %E chosen/ E material
+flange_n = E_Oak/E_Pine; %E chosen/ E material
 web_n = E_Oak/E_Oak; %E chosen/ E material
 
-%converted I cross section
-I = 1/12*(flange_width*flange_n*(2*flange_height+web_height)^3-(flange_width-web_width)*web_n*web_height^3);
+%Converted cross sections
+flange_width_con = flange_width/flange_n; %in
+web_width_con = web_width/web_n; %in
 
+%converted I cross section
+I = 1/12*(flange_width_con*(2*flange_height+web_height)^3-(flange_width_con-web_width_con)*web_height^3);
 
 syms x; syms F;
 %using lower E value, E pine
@@ -79,23 +82,23 @@ end
 
 %This assumes strength is the same in compression and tension
 %this assumption may not hold for pine
-bendStress_flange = -M_max/I*(flange_height+web_height/2);
-bendStress_web = -M_max/I*(web_height/2);
+bendStress_flange = -M_max*(flange_height+web_height/2)/(I*flange_n);
+bendStress_web = -M_max*(web_height/2)/(I*web_n);
 
 %shear and glue
-Q_joint = flange_width*flange_n*flange_height*(flange_height/2+web_height/2);
-Q_max = Q_joint + web_width*web_n*web_height*web_height/4;
+Q_joint = flange_width_con*flange_height*(flange_height/2+web_height/2);
+Q_max = Q_joint + web_width_con*web_height/2*web_height/4;
 
-shearStress_max = V_max*Q_max/(web_n*I*web_width); %middle of I
-shearStress_flange = V_max*Q_joint/(flange_n*I*flange_width); %connection between flange and web
-shearStress_glue = V_max*Q_joint/(web_n*I*web_width); %connection between flange and web
+shearStress_max = V_max*Q_max/(web_n*I*web_width_con); %middle of I
+shearStress_flange = V_max*Q_joint/(flange_n*I*flange_width_con); %connection between flange and web, on flange side
+shearStress_glueWeb = V_max*Q_joint/(web_n*I*web_width_con); %connection between flange and web, on web side
 %not sure if I should multiple last equation by web_n or not
 
 %calculate safety factors
 %need to take derivatives and compare
-SF_bendStress = min(abs(Oak_Tens_Avg*F/bendStress_flange),abs(Oak_Tens_Avg*F/bendStress_web))/F;
-SF_shearStress = min(abs(Oak_Shear_Avg*F/shearStress_max),abs(Oak_Shear_Avg*F/shearStress_flange))/F;
-SF_shearStressGlue = OakGlue_Shear_Avg/abs(shearStress_glue);
+SF_bendStress = min(abs(Pine_Tens_Avg*F/bendStress_flange),abs(Oak_Tens_Avg*F/bendStress_web))/F;
+SF_shearStress = min(abs(Pine_Shear_Avg*F/shearStress_flange),abs(Oak_Shear_Avg*F/shearStress_max))/F;
+SF_shearStressGlue = min(abs(PineGlue_Shear_Avg*F/shearStress_flange),abs(OakGlue_Shear_Avg*F/shearStress_glueWeb))/F;
 
 F_max_bendStress = vpa(solve(SF_bendStress==1,F));
 F_max_shearStress = vpa(solve(SF_shearStress==1,F));
@@ -104,7 +107,7 @@ F_max_shearStressGlue = vpa(solve(SF_shearStressGlue==1,F));
 F_max = min([F_max_bendStress,F_max_shearStress,F_max_shearStressGlue]);
 
 flangeVolume = L_tot*flange_width*flange_height;
-FlangeWeight = flangeVolume*dens_Oak;
+FlangeWeight = flangeVolume*dens_Pine;
 
 webVolume = L_tot*web_width*web_height;
 webWeight = webVolume*dens_Oak;

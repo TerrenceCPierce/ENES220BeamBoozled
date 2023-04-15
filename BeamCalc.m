@@ -25,13 +25,13 @@ dens_Pine = .014; %lb/in^3
 a = 12; %in
 b = 8; %in
 
-flange_width = 1.1875; %in
-flange_height = .1875; %in
-web_width = .4375; %in
-web_height = 1.875; %in
+flange_width = 1.125; %in
+flange_height = 0.1875; %in
+web_width = 0.5625; %in
+web_height = 1.8125; %in
 
-flange_n = E_Oak/E_Pine; %E chosen/ E material
-web_n = E_Oak/E_Oak; %E chosen/ E material
+flange_n = E_Oak/E_Oak; %E chosen/ E material
+web_n = E_Oak/E_Pine; %E chosen/ E material
 
 %Converted cross sections
 flange_width_con = flange_width/flange_n; %in
@@ -42,13 +42,13 @@ I = 1/12*(flange_width_con*(2*flange_height+web_height)^3-(flange_width_con-web_
 
 syms x; syms F;
 %using lower E value, E pine
-deflectLeft = -F*b*x/(6*E_Pine*I*L)*(L^2-b^2-x^2);
-deflectRight = -F*a*(L-x)/(6*E_Pine*I*L)*(L^2-a^2-(L-x)^2);
+deflectLeft = -F*b*x/(6*E_Oak*I*L)*(L^2-b^2-x^2);
+deflectRight = -F*a*(L-x)/(6*E_Oak*I*L)*(L^2-a^2-(L-x)^2);
 slopeLeft = diff(deflectLeft);
 slopeRight = diff(deflectRight);
 
-MLeft = diff(slopeLeft)*E_Pine*I;
-MRight = diff(slopeRight)*E_Pine*I;
+MLeft = diff(slopeLeft)*E_Oak*I;
+MRight = diff(slopeRight)*E_Oak*I;
 
 VLeft = diff(MLeft);
 VRight = diff(MRight);
@@ -71,9 +71,9 @@ maxMArr = [maxM_left;maxM_right];
 M_max =  maxMArr(1);
 
 if abs(diff(VLeft))>abs(diff(VRight))
-    V_max = VLeft;
+V_max = VLeft;
 else
-    V_max = VRight;
+V_max = VRight;
 end
 
 
@@ -96,22 +96,29 @@ shearStress_glueWeb = V_max*Q_joint/(web_n*I*web_width_con); %connection between
 
 %calculate safety factors
 %need to take derivatives and compare
-SF_bendStress = min(abs(Pine_Tens_Avg*F/bendStress_flange),abs(Oak_Tens_Avg*F/bendStress_web))/F;
-SF_shearStress = min(abs(Pine_Shear_Avg*F/shearStress_flange),abs(Oak_Shear_Avg*F/shearStress_max))/F;
-SF_shearStressGlue = min(abs(PineGlue_Shear_Avg*F/shearStress_flange),abs(OakGlue_Shear_Avg*F/shearStress_glueWeb))/F;
+SF_bendStress = min(abs(Oak_Tens_Avg*F/bendStress_flange),abs(Pine_Tens_Avg*F/bendStress_web))/F;
+SF_shearStress = min(abs(Oak_Shear_Avg*F/shearStress_flange),abs(Pine_Shear_Avg*F/shearStress_max))/F;
+SF_shearStressGlue = min(abs(OakGlue_Shear_Avg*F/shearStress_flange),abs(PineGlue_Shear_Avg*F/shearStress_glueWeb))/F;
 
 F_max_bendStress = vpa(solve(SF_bendStress==1,F));
 F_max_shearStress = vpa(solve(SF_shearStress==1,F));
 F_max_shearStressGlue = vpa(solve(SF_shearStressGlue==1,F));
 
-F_max = min([F_max_bendStress,F_max_shearStress,F_max_shearStressGlue]);
+F_max = double(min([F_max_bendStress,F_max_shearStress,F_max_shearStressGlue]));
 
 flangeVolume = L_tot*flange_width*flange_height;
-FlangeWeight = flangeVolume*dens_Pine;
+FlangeWeight = flangeVolume*dens_Oak;
 
 webVolume = L_tot*web_width*web_height;
-webWeight = webVolume*dens_Oak;
+webWeight = webVolume*dens_Pine;
 
 weight = 2*FlangeWeight + webWeight;
 
 str2Weight = F_max/weight;
+
+syms F; syms x;
+slopeLeftmax = subs(slopeLeft,F,double(F_max));
+maxDeflect_x = solve(slopeLeftmax,x);
+x_val_max = double(max(maxDeflect_x));
+syms F; syms x;
+maxDeflect = subs(deflectLeft,[x, F],[x_val_max, F_max]);
